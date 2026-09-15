@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detalhamento do Caixa</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --surface-0: #f1efe8; --surface-1: #f7f6f2; --surface-2: #ffffff;
+    --text-primary: #1a1a18; --text-secondary: #5f5e5a; --text-muted: #888780;
+    --border: rgba(0,0,0,0.1); --border-strong: rgba(0,0,0,0.18);
+    --radius: 8px;
+    --bg-accent: #e6f1fb; --text-accent: #185fa5; --fill-accent: #378add; --on-accent: #fff;
+    --bg-success: #eaf3de; --text-success: #3b6d11;
+    --bg-danger: #fcebeb; --text-danger: #a32d2d; --border-danger: #f09595;
+    --bg-warning: #faeeda; --text-warning: #854f0b;
+    --bg-pro: #eeedfe; --text-pro: #534ab7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0: #1c1c1a; --surface-1: #242422; --surface-2: #2c2c2a;
+      --text-primary: #f0ede6; --text-secondary: #b4b2a9; --text-muted: #888780;
+      --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.18);
+      --bg-accent: #042c53; --text-accent: #85b7eb; --fill-accent: #185fa5;
+      --bg-success: #173404; --text-success: #97c459;
+      --bg-danger: #501313; --text-danger: #f09595; --border-danger: #791f1f;
+      --bg-warning: #412402; --text-warning: #ef9f27;
+      --bg-pro: #26215c; --text-pro: #afa9ec;
+    }
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--surface-0); color: var(--text-primary); min-height: 100vh; }
+  .topbar { background: var(--surface-2); border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; height: 56px; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .topbar h1 { font-size: 16px; font-weight: 500; }
+  .topbar .sync { font-size: 12px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .card { background: var(--surface-1); border-radius: var(--radius); padding: 1rem; }
+  .card-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .card-value { font-size: 20px; font-weight: 500; }
+  .card-value.green { color: var(--text-success); }
+  .card-value.red { color: var(--text-danger); }
+  .card-value.accent { color: var(--text-accent); }
+  .tab-bar { display: flex; gap: 4px; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; }
+  .tab { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+  .tab.active { color: var(--text-accent); border-bottom-color: var(--fill-accent); font-weight: 500; }
+  .section { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .upload-area { border: 1.5px dashed var(--border-strong); border-radius: var(--radius); padding: 2.5rem; text-align: center; cursor: pointer; transition: background .15s; }
+  .upload-area:hover { background: var(--surface-1); }
+  .upload-area i { font-size: 36px; color: var(--text-muted); display: block; margin-bottom: 8px; }
+  .upload-area p { font-size: 13px; color: var(--text-secondary); }
+  .upload-area small { font-size: 11px; color: var(--text-muted); }
+  input[type=file] { display: none; }
+  .btn { background: transparent; border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 7px 14px; font-size: 13px; color: var(--text-primary); cursor: pointer; font-family: inherit; transition: background .15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--surface-1); }
+  .btn-primary { background: var(--fill-accent); color: var(--on-accent); border-color: var(--fill-accent); }
+  .btn-primary:hover { opacity: .9; }
+  .btn-danger { color: var(--text-danger); border-color: var(--border-danger); }
+  .btn-danger:hover { background: var(--bg-danger); }
+  .btn-sm { padding: 3px 8px; font-size: 11px; }
+  .preview-box { background: var(--surface-1); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 1rem; display: none; }
+  .preview-box img { max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px; display: block; margin: 0 auto 1rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .form-field { display: flex; flex-direction: column; gap: 4px; }
+  .form-field label { font-size: 12px; color: var(--text-secondary); }
+  .form-field input, .form-field select { border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 7px 10px; font-size: 13px; background: var(--surface-2); color: var(--text-primary); font-family: inherit; outline: none; }
+  .form-field input:focus, .form-field select:focus { border-color: var(--fill-accent); }
+  .form-field.full { grid-column: 1 / -1; }
+  .status { font-size: 12px; padding: 8px 12px; border-radius: var(--radius); margin-top: 8px; display: none; }
+  .status.loading { color: var(--text-accent); background: var(--bg-accent); }
+  .status.error { color: var(--text-danger); background: var(--bg-danger); }
+  .status.success { color: var(--text-success); background: var(--bg-success); }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 500; color: var(--text-muted); padding: 6px 10px; border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text-primary); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-1); }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .badge-pix { background: var(--bg-accent); color: var(--text-accent); }
+  .badge-credito { background: var(--bg-pro); color: var(--text-pro); }
+  .badge-dinheiro { background: var(--bg-success); color: var(--text-success); }
+  .badge-debito { background: var(--bg-warning); color: var(--text-warning); }
+  .badge-outro { background: var(--surface-1); color: var(--text-secondary); }
+  .empty { text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 13px; }
+  .empty i { font-size: 32px; display: block; margin-bottom: 8px; }
+  .resumo-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .resumo-row:last-child { border-bottom: none; font-weight: 500; font-size: 14px; }
+  .saldo-input { display: flex; align-items: center; gap: 10px; }
+  .saldo-input label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+  .saldo-input input { max-width: 140px; border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 6px 10px; font-size: 13px; background: var(--surface-2); color: var(--text-primary); font-family: inherit; outline: none; }
+  .loading-overlay { position: fixed; inset: 0; background: var(--surface-0); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 100; }
+  .loading-overlay p { font-size: 14px; color: var(--text-secondary); }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--fill-accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-field.full { grid-column: 1; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .topbar h1 { font-size: 14px; }
+    td, th { padding: 6px 6px; font-size: 12px; }
+    .container { padding: 1rem .75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Conectando ao banco de dados...</p>
+</div>
+
+<div class="topbar">
+  <i class="ti ti-cash-register" style="font-size:20px;color:var(--text-accent)" aria-hidden="true"></i>
+  <h1>Detalhamento do Caixa</h1>
+  <span class="sync" id="syncStatus"><i class="ti ti-cloud-check" aria-hidden="true"></i> Sincronizado</span>
+</div>
+
+<div class="container">
+  <div class="cards">
+    <div class="card"><div class="card-label">Valor inicial</div><div class="card-value accent" id="cardInicial">R$ 0,00</div></div>
+    <div class="card"><div class="card-label">Total despesas</div><div class="card-value red" id="cardTotal">R$ 0,00</div></div>
+    <div class="card"><div class="card-label">Pago do caixa</div><div class="card-value red" id="cardCaixa">R$ 0,00</div></div>
+    <div class="card"><div class="card-label">Fora do caixa</div><div class="card-value" id="cardFora">R$ 0,00</div></div>
+    <div class="card"><div class="card-label">Saldo em caixa</div><div class="card-value green" id="cardSaldo">R$ 0,00</div></div>
+    <div class="card"><div class="card-label">Lançamentos</div><div class="card-value" id="cardQtd">0</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('lancamentos')"><i class="ti ti-list" aria-hidden="true"></i> Lançamentos</button>
+    <button class="tab" onclick="showTab('novo')"><i class="ti ti-upload" aria-hidden="true"></i> Novo</button>
+    <button class="tab" onclick="showTab('resumo')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Resumo</button>
+  </div>
+
+  <!-- LANÇAMENTOS -->
+  <div id="tab-lancamentos">
+    <div class="section">
+      <div class="section-title">
+        <i class="ti ti-table" aria-hidden="true"></i> Registros
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> CSV</button>
+          <button class="btn btn-danger" onclick="limparTudo()"><i class="ti ti-trash" aria-hidden="true"></i> Limpar tudo</button>
+        </span>
+      </div>
+      <div id="emptyMsg" class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>Nenhum lançamento ainda.<br>Vá em "Novo" para adicionar.</div>
+      <div style="overflow-x:auto">
+        <table id="tabela" style="display:none">
+          <thead><tr>
+            <th>Data</th><th>Descrição</th><th>Pagamento</th><th>Origem</th><th>Valor</th><th>Cupom / Venda</th><th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOVO -->
+  <div id="tab-novo" style="display:none">
+    <div class="section">
+      <div class="section-title"><i class="ti ti-camera" aria-hidden="true"></i> Enviar imagem do cupom ou nota</div>
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <i class="ti ti-photo-up" aria-hidden="true"></i>
+        <p>Clique para selecionar uma imagem</p>
+        <small>Cupom fiscal, NFC-e, nota ou recibo — JPG, PNG</small>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" onchange="onFileSelected(event)">
+      <div id="statusBox" class="status"></div>
+      <div id="previewBox" class="preview-box">
+        <img id="previewImg" src="" alt="Pré-visualização">
+        <div class="form-grid">
+          <div class="form-field"><label>Data</label><input type="date" id="fData"></div>
+          <div class="form-field"><label>Valor (R$)</label><input type="number" id="fValor" step="0.01" placeholder="0,00"></div>
+          <div class="form-field full"><label>Descrição</label><input type="text" id="fDesc" placeholder="Ex: Disco diamantado + serra circular"></div>
+          <div class="form-field"><label>Forma de pagamento</label>
+            <select id="fPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+          </div>
+          <div class="form-field"><label>Origem</label><input type="text" id="fOrigem" placeholder="Ex: Caixa R$500"></div>
+          <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="fCupom" placeholder="Ex: NFC-e 000001016"></div>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="cancelar()">Cancelar</button>
+          <button class="btn btn-primary" onclick="adicionarLancamento()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><i class="ti ti-pencil" aria-hidden="true"></i> Lançamento manual</div>
+      <div class="form-grid">
+        <div class="form-field"><label>Data</label><input type="date" id="mData"></div>
+        <div class="form-field"><label>Valor (R$)</label><input type="number" id="mValor" step="0.01" placeholder="0,00"></div>
+        <div class="form-field full"><label>Descrição</label><input type="text" id="mDesc" placeholder="Descrição do item ou serviço"></div>
+        <div class="form-field"><label>Forma de pagamento</label>
+          <select id="mPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+        </div>
+        <div class="form-field"><label>Origem</label><input type="text" id="mOrigem" placeholder="Ex: Caixa R$500"></div>
+        <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="mCupom" placeholder="Ex: NFC-e 000001016"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="adicionarManual()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESUMO -->
+  <div id="tab-resumo" style="display:none">
+    <div class="section">
+      <div class="section-title"><i class="ti ti-cash" aria-hidden="true"></i> Valor em caixa</div>
+      <div class="saldo-input">
+        <label>Valor recebido (R$):</label>
+        <input type="number" id="valorInicial" step="0.01" placeholder="500" oninput="salvarInicial()">
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title"><i class="ti ti-report" aria-hidden="true"></i> Resumo</div>
+      <div class="resumo-row"><span>Valor recebido em caixa</span><span id="rInicial">R$ 0,00</span></div>
+      <div class="resumo-row"><span>Utilizado do caixa</span><span id="rUtilizado" style="color:var(--text-danger)">R$ 0,00</span></div>
+      <div class="resumo-row"><span>Saldo em caixa</span><span id="rSaldo" style="color:var(--text-success)">R$ 0,00</span></div>
+      <div class="resumo-row"><span>Pagamentos fora do caixa</span><span id="rFora">R$ 0,00</span></div>
+      <div class="resumo-row"><span>Total geral de despesas</span><span id="rTotal">R$ 0,00</span></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><i class="ti ti-chart-pie" aria-hidden="true"></i> Por forma de pagamento</div>
+      <div id="porPagamento"><div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuuiJ4YrAOTmlr7-zI1vOogdjfIPZwqtw",
+    authDomain: "tetoeobra-casa-borogodo.firebaseapp.com",
+    projectId: "tetoeobra-casa-borogodo",
+    storageBucket: "tetoeobra-casa-borogodo.firebasestorage.app",
+    messagingSenderId: "916640072730",
+    appId: "1:916640072730:web:7e2a9c38281216c1513da3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const col = collection(db, "lancamentos");
+  const cfgDoc = doc(db, "config", "caixa");
+
+  let lancamentos = [];
+  let imgBase64 = null;
+
+  // helpers
+  function fmt(v) {
+    return 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function fmtData(d) {
+    if (!d) return '';
+    if (d.includes('-')) { const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+    return d;
+  }
+  function badgePag(p) {
+    const cls = {'PIX':'badge-pix','Crédito':'badge-credito','Débito':'badge-debito','Dinheiro':'badge-dinheiro'}[p]||'badge-outro';
+    return `<span class="badge ${cls}">${p}</span>`;
+  }
+  function origemCaixa(o) { return o && o.toLowerCase().includes('caixa'); }
+  function setSync(ok) {
+    document.getElementById('syncStatus').innerHTML = ok
+      ? '<i class="ti ti-cloud-check" aria-hidden="true"></i> Sincronizado'
+      : '<i class="ti ti-cloud-off" aria-hidden="true"></i> Sem conexão';
+  }
+
+  function calcTotais() {
+    const ini = parseFloat(document.getElementById('valorInicial')?.value||0);
+    let tc=0, tf=0;
+    lancamentos.forEach(l=>{ const v=parseFloat(l.valor||0); origemCaixa(l.origem)?tc+=v:tf+=v; });
+    return { ini, totalCaixa:tc, totalFora:tf, total:tc+tf, saldo:ini-tc };
+  }
+
+  function renderTabela() {
+    const tbody = document.getElementById('tbody');
+    const tabela = document.getElementById('tabela');
+    const emptyMsg = document.getElementById('emptyMsg');
+    if (lancamentos.length===0) { tabela.style.display='none'; emptyMsg.style.display=''; }
+    else {
+      tabela.style.display=''; emptyMsg.style.display='none';
+      tbody.innerHTML = lancamentos.map((l,i)=>`
+        <tr>
+          <td>${fmtData(l.data)}</td>
+          <td>${l.descricao}</td>
+          <td>${badgePag(l.pagamento)}</td>
+          <td style="color:var(--text-secondary);font-size:12px">${l.origem||'—'}</td>
+          <td style="font-weight:500">${fmt(l.valor)}</td>
+          <td style="font-size:12px;color:var(--text-secondary)">${l.cupom||'—'}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="window._remover('${l._id}')"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+        </tr>`).join('');
+    }
+    atualizarCards();
+  }
+
+  function atualizarCards() {
+    const t = calcTotais();
+    document.getElementById('cardInicial').textContent = fmt(t.ini);
+    document.getElementById('cardTotal').textContent = fmt(t.total);
+    document.getElementById('cardCaixa').textContent = fmt(t.totalCaixa);
+    document.getElementById('cardFora').textContent = fmt(t.totalFora);
+    document.getElementById('cardSaldo').textContent = fmt(t.saldo);
+    document.getElementById('cardQtd').textContent = lancamentos.length;
+  }
+
+  function atualizarResumo() {
+    const t = calcTotais();
+    document.getElementById('rInicial').textContent = fmt(t.ini);
+    document.getElementById('rUtilizado').textContent = fmt(t.totalCaixa);
+    document.getElementById('rSaldo').textContent = fmt(t.saldo);
+    document.getElementById('rFora').textContent = fmt(t.totalFora);
+    document.getElementById('rTotal').textContent = fmt(t.total);
+    const pag = {};
+    lancamentos.forEach(l=>{ pag[l.pagamento]=(pag[l.pagamento]||0)+parseFloat(l.valor||0); });
+    const el = document.getElementById('porPagamento');
+    if (!Object.keys(pag).length) {
+      el.innerHTML='<div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div>';
+    } else {
+      el.innerHTML = Object.entries(pag).map(([k,v])=>`<div class="resumo-row"><span>${badgePag(k)}</span><span>${fmt(v)}</span></div>`).join('');
+    }
+    atualizarCards();
+  }
+
+  // Firestore realtime
+  const q = query(col, orderBy("criadoEm","asc"));
+  onSnapshot(q, snap => {
+    lancamentos = snap.docs.map(d=>({_id:d.id,...d.data()}));
+    renderTabela();
+    setSync(true);
+    document.getElementById('loadingOverlay').style.display='none';
+  }, ()=>{ setSync(false); document.getElementById('loadingOverlay').style.display='none'; });
+
+  // carregar config
+  getDoc(cfgDoc).then(d=>{ if(d.exists()) document.getElementById('valorInicial').value=d.data().valorInicial||''; });
+
+  // expor funções globais
+  window.showTab = function(name) {
+    ['lancamentos','novo','resumo'].forEach(t=>{ document.getElementById('tab-'+t).style.display=t===name?'':'none'; });
+    document.querySelectorAll('.tab').forEach((btn,i)=>{ btn.classList.toggle('active',['lancamentos','novo','resumo'][i]===name); });
+    if (name==='resumo') atualizarResumo();
+  };
+
+  window.salvarInicial = async function() {
+    const v = parseFloat(document.getElementById('valorInicial').value||0);
+    await setDoc(cfgDoc,{valorInicial:v});
+    atualizarCards();
+  };
+
+  window._remover = async function(id) {
+    if (!confirm('Remover este lançamento?')) return;
+    await deleteDoc(doc(db,'lancamentos',id));
+  };
+
+  window.limparTudo = async function() {
+    if (!confirm('Tem certeza? Isso vai apagar TODOS os lançamentos do banco de dados.')) return;
+    const snap = await getDocs(col);
+    for (const d of snap.docs) await deleteDoc(d.ref);
+  };
+
+  window.cancelar = function() {
+    document.getElementById('previewBox').style.display='none';
+    document.getElementById('fileInput').value='';
+    document.getElementById('statusBox').style.display='none';
+    imgBase64=null;
+  };
+
+  function setStatus(msg, tipo) {
+    const el=document.getElementById('statusBox');
+    el.textContent=msg; el.className='status '+(tipo||''); el.style.display=msg?'':'none';
+  }
+
+  window.onFileSelected = function(e) {
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      const dataUrl=ev.target.result;
+      imgBase64=dataUrl.split(',')[1];
+      const mtype=file.type;
+      const preview=document.getElementById('previewBox');
+      const img=document.getElementById('previewImg');
+      img.src=dataUrl; img.style.display=''; preview.style.display='';
+      setStatus('Analisando imagem com IA...','loading');
+      analisarComIA(imgBase64, mtype);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  async function analisarComIA(b64, mtype) {
+    try {
+      const hoje=new Date().toISOString().split('T')[0];
+      const prompt=`Você é um assistente especializado em leitura de cupons fiscais, notas fiscais e recibos brasileiros.
+Analise a imagem e extraia as seguintes informações no formato JSON:
+{"data":"YYYY-MM-DD ou vazio","descricao":"descrição resumida dos itens","pagamento":"PIX ou Crédito ou Débito ou Dinheiro ou Outro","origem":"Caixa R$500 ou Pagamento direto","valor":numero,"cupom":"número do cupom ou NF-e ou vazio"}
+Responda SOMENTE com o JSON, sem markdown nem texto adicional. Data de hoje: ${hoje}`;
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mtype,data:b64}},{type:'text',text:prompt}]}]})
+      });
+      const data=await resp.json();
+      const text=data.content?.map(c=>c.text||'').join('');
+      const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+      if(parsed.data) document.getElementById('fData').value=parsed.data;
+      if(parsed.descricao) document.getElementById('fDesc').value=parsed.descricao;
+      if(parsed.pagamento) document.getElementById('fPag').value=parsed.pagamento;
+      if(parsed.origem) document.getElementById('fOrigem').value=parsed.origem;
+      if(parsed.valor) document.getElementById('fValor').value=parsed.valor;
+      if(parsed.cupom) document.getElementById('fCupom').value=parsed.cupom;
+      setStatus('✓ Dados extraídos — revise e confirme.','success');
+    } catch(err) {
+      setStatus('Não foi possível extrair automaticamente. Preencha manualmente.','error');
+    }
+  }
+
+  window.adicionarLancamento = async function() {
+    const desc=document.getElementById('fDesc').value.trim();
+    const valor=document.getElementById('fValor').value;
+    if(!desc||!valor){alert('Preencha ao menos a descrição e o valor.');return;}
+    setStatus('Salvando...','loading');
+    try {
+      await addDoc(col,{
+        data:document.getElementById('fData').value,
+        descricao:desc,
+        pagamento:document.getElementById('fPag').value,
+        origem:document.getElementById('fOrigem').value.trim(),
+        valor:parseFloat(valor),
+        cupom:document.getElementById('fCupom').value.trim(),
+        criadoEm:Date.now()
+      });
+      window.cancelar(); window.showTab('lancamentos');
+    } catch(e){ setStatus('Erro ao salvar. Verifique a conexão.','error'); }
+  };
+
+  window.adicionarManual = async function() {
+    const desc=document.getElementById('mDesc').value.trim();
+    const valor=document.getElementById('mValor').value;
+    if(!desc||!valor){alert('Preencha ao menos a descrição e o valor.');return;}
+    try {
+      await addDoc(col,{
+        data:document.getElementById('mData').value,
+        descricao:desc,
+        pagamento:document.getElementById('mPag').value,
+        origem:document.getElementById('mOrigem').value.trim(),
+        valor:parseFloat(valor),
+        cupom:document.getElementById('mCupom').value.trim(),
+        criadoEm:Date.now()
+      });
+      ['mData','mDesc','mValor','mOrigem','mCupom'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('mPag').value='PIX';
+      window.showTab('lancamentos');
+    } catch(e){ alert('Erro ao salvar. Verifique a conexão.'); }
+  };
+
+  window.exportarCSV = function() {
+    const cols=['Data','Descrição','Pagamento','Origem','Valor','Cupom / Venda'];
+    const rows=lancamentos.map(l=>[fmtData(l.data),l.descricao,l.pagamento,l.origem,String(l.valor).replace('.',','),l.cupom].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(';'));
+    const csv=[cols.join(';'),...rows].join('\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='detalhamento_caixa.csv'; a.click();
+  };
+</script>
+</body>
+</html>
