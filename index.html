@@ -31,9 +31,44 @@
     }
   }
   body { font-family: system-ui, -apple-system, sans-serif; background: var(--surface-0); color: var(--text-primary); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #loginScreen {
+    position: fixed; inset: 0; background: var(--surface-0);
+    display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; gap: 0;
+  }
+  .login-card {
+    background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 16px;
+    padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .login-logo { text-align: center; margin-bottom: 1.75rem; }
+  .login-logo i { font-size: 40px; color: var(--fill-accent); display: block; margin-bottom: 8px; }
+  .login-logo h1 { font-size: 18px; font-weight: 600; }
+  .login-logo p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .login-field label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+  .login-field input {
+    border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 9px 12px;
+    font-size: 14px; background: var(--surface-1); color: var(--text-primary); font-family: inherit; outline: none;
+  }
+  .login-field input:focus { border-color: var(--fill-accent); }
+  .btn-login {
+    width: 100%; padding: 10px; background: var(--fill-accent); color: var(--on-accent);
+    border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500;
+    cursor: pointer; font-family: inherit; margin-top: 6px; transition: opacity .15s;
+  }
+  .btn-login:hover { opacity: .9; }
+  .btn-login:disabled { opacity: .6; cursor: default; }
+  .login-error { color: var(--text-danger); background: var(--bg-danger); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; margin-top: 10px; display: none; }
+
+  /* ── APP ── */
+  #appScreen { display: none; }
   .topbar { background: var(--surface-2); border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; height: 56px; gap: 12px; position: sticky; top: 0; z-index: 10; }
   .topbar h1 { font-size: 16px; font-weight: 500; }
   .topbar .sync { font-size: 12px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .topbar .user-info { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+  .btn-logout { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; padding: 4px; }
+  .btn-logout:hover { color: var(--text-danger); }
   .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
   .card { background: var(--surface-1); border-radius: var(--radius); padding: 1rem; }
@@ -102,128 +137,155 @@
     .topbar h1 { font-size: 14px; }
     td, th { padding: 6px 6px; font-size: 12px; }
     .container { padding: 1rem .75rem; }
+    .login-card { margin: 1rem; }
   }
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <p>Conectando ao banco de dados...</p>
+<!-- TELA DE LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="ti ti-cash-register"></i>
+      <h1>Detalhamento do Caixa</h1>
+      <p>Entre com seu e-mail e senha</p>
+    </div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="btnLogin" onclick="fazerLogin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
 </div>
 
-<div class="topbar">
-  <i class="ti ti-cash-register" style="font-size:20px;color:var(--text-accent)" aria-hidden="true"></i>
-  <h1>Detalhamento do Caixa</h1>
-  <span class="sync" id="syncStatus"><i class="ti ti-cloud-check" aria-hidden="true"></i> Sincronizado</span>
-</div>
-
-<div class="container">
-  <div class="cards">
-    <div class="card"><div class="card-label">Valor inicial</div><div class="card-value accent" id="cardInicial">R$ 0,00</div></div>
-    <div class="card"><div class="card-label">Total despesas</div><div class="card-value red" id="cardTotal">R$ 0,00</div></div>
-    <div class="card"><div class="card-label">Pago do caixa</div><div class="card-value red" id="cardCaixa">R$ 0,00</div></div>
-    <div class="card"><div class="card-label">Fora do caixa</div><div class="card-value" id="cardFora">R$ 0,00</div></div>
-    <div class="card"><div class="card-label">Saldo em caixa</div><div class="card-value green" id="cardSaldo">R$ 0,00</div></div>
-    <div class="card"><div class="card-label">Lançamentos</div><div class="card-value" id="cardQtd">0</div></div>
+<!-- APP PRINCIPAL -->
+<div id="appScreen">
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <p>Conectando ao banco de dados...</p>
   </div>
 
-  <div class="tab-bar">
-    <button class="tab active" onclick="showTab('lancamentos')"><i class="ti ti-list" aria-hidden="true"></i> Lançamentos</button>
-    <button class="tab" onclick="showTab('novo')"><i class="ti ti-upload" aria-hidden="true"></i> Novo</button>
-    <button class="tab" onclick="showTab('resumo')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Resumo</button>
+  <div class="topbar">
+    <i class="ti ti-cash-register" style="font-size:20px;color:var(--text-accent)" aria-hidden="true"></i>
+    <h1>Detalhamento do Caixa</h1>
+    <span class="sync" id="syncStatus"><i class="ti ti-cloud-check" aria-hidden="true"></i> Sincronizado</span>
+    <span class="user-info" id="userInfo"></span>
+    <button class="btn-logout" onclick="fazerLogout()" title="Sair"><i class="ti ti-logout" aria-hidden="true"></i></button>
   </div>
 
-  <!-- LANÇAMENTOS -->
-  <div id="tab-lancamentos">
-    <div class="section">
-      <div class="section-title">
-        <i class="ti ti-table" aria-hidden="true"></i> Registros
-        <span style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> CSV</button>
-          <button class="btn btn-danger" onclick="limparTudo()"><i class="ti ti-trash" aria-hidden="true"></i> Limpar tudo</button>
-        </span>
-      </div>
-      <div id="emptyMsg" class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>Nenhum lançamento ainda.<br>Vá em "Novo" para adicionar.</div>
-      <div style="overflow-x:auto">
-        <table id="tabela" style="display:none">
-          <thead><tr>
-            <th>Data</th><th>Descrição</th><th>Pagamento</th><th>Origem</th><th>Valor</th><th>Cupom / Venda</th><th></th>
-          </tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
+  <div class="container">
+    <div class="cards">
+      <div class="card"><div class="card-label">Valor inicial</div><div class="card-value accent" id="cardInicial">R$ 0,00</div></div>
+      <div class="card"><div class="card-label">Total despesas</div><div class="card-value red" id="cardTotal">R$ 0,00</div></div>
+      <div class="card"><div class="card-label">Pago do caixa</div><div class="card-value red" id="cardCaixa">R$ 0,00</div></div>
+      <div class="card"><div class="card-label">Fora do caixa</div><div class="card-value" id="cardFora">R$ 0,00</div></div>
+      <div class="card"><div class="card-label">Saldo em caixa</div><div class="card-value green" id="cardSaldo">R$ 0,00</div></div>
+      <div class="card"><div class="card-label">Lançamentos</div><div class="card-value" id="cardQtd">0</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="showTab('lancamentos')"><i class="ti ti-list" aria-hidden="true"></i> Lançamentos</button>
+      <button class="tab" onclick="showTab('novo')"><i class="ti ti-upload" aria-hidden="true"></i> Novo</button>
+      <button class="tab" onclick="showTab('resumo')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Resumo</button>
+    </div>
+
+    <!-- LANÇAMENTOS -->
+    <div id="tab-lancamentos">
+      <div class="section">
+        <div class="section-title">
+          <i class="ti ti-table" aria-hidden="true"></i> Registros
+          <span style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> CSV</button>
+            <button class="btn btn-danger" onclick="limparTudo()"><i class="ti ti-trash" aria-hidden="true"></i> Limpar tudo</button>
+          </span>
+        </div>
+        <div id="emptyMsg" class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>Nenhum lançamento ainda.<br>Vá em "Novo" para adicionar.</div>
+        <div style="overflow-x:auto">
+          <table id="tabela" style="display:none">
+            <thead><tr>
+              <th>Data</th><th>Descrição</th><th>Pagamento</th><th>Origem</th><th>Valor</th><th>Cupom / Venda</th><th></th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- NOVO -->
-  <div id="tab-novo" style="display:none">
-    <div class="section">
-      <div class="section-title"><i class="ti ti-camera" aria-hidden="true"></i> Enviar imagem do cupom ou nota</div>
-      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-        <i class="ti ti-photo-up" aria-hidden="true"></i>
-        <p>Clique para selecionar uma imagem</p>
-        <small>Cupom fiscal, NFC-e, nota ou recibo — JPG, PNG</small>
-      </div>
-      <input type="file" id="fileInput" accept="image/*" onchange="onFileSelected(event)">
-      <div id="statusBox" class="status"></div>
-      <div id="previewBox" class="preview-box">
-        <img id="previewImg" src="" alt="Pré-visualização">
-        <div class="form-grid">
-          <div class="form-field"><label>Data</label><input type="date" id="fData"></div>
-          <div class="form-field"><label>Valor (R$)</label><input type="number" id="fValor" step="0.01" placeholder="0,00"></div>
-          <div class="form-field full"><label>Descrição</label><input type="text" id="fDesc" placeholder="Ex: Disco diamantado + serra circular"></div>
-          <div class="form-field"><label>Forma de pagamento</label>
-            <select id="fPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+    <!-- NOVO -->
+    <div id="tab-novo" style="display:none">
+      <div class="section">
+        <div class="section-title"><i class="ti ti-camera" aria-hidden="true"></i> Enviar imagem do cupom ou nota</div>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+          <i class="ti ti-photo-up" aria-hidden="true"></i>
+          <p>Clique para selecionar uma imagem</p>
+          <small>Cupom fiscal, NFC-e, nota ou recibo — JPG, PNG</small>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" onchange="onFileSelected(event)">
+        <div id="statusBox" class="status"></div>
+        <div id="previewBox" class="preview-box">
+          <img id="previewImg" src="" alt="Pré-visualização">
+          <div class="form-grid">
+            <div class="form-field"><label>Data</label><input type="date" id="fData"></div>
+            <div class="form-field"><label>Valor (R$)</label><input type="number" id="fValor" step="0.01" placeholder="0,00"></div>
+            <div class="form-field full"><label>Descrição</label><input type="text" id="fDesc" placeholder="Ex: Disco diamantado + serra circular"></div>
+            <div class="form-field"><label>Forma de pagamento</label>
+              <select id="fPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+            </div>
+            <div class="form-field"><label>Origem</label><input type="text" id="fOrigem" placeholder="Ex: Caixa R$500"></div>
+            <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="fCupom" placeholder="Ex: NFC-e 000001016"></div>
           </div>
-          <div class="form-field"><label>Origem</label><input type="text" id="fOrigem" placeholder="Ex: Caixa R$500"></div>
-          <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="fCupom" placeholder="Ex: NFC-e 000001016"></div>
+          <div class="actions">
+            <button class="btn" onclick="cancelar()">Cancelar</button>
+            <button class="btn btn-primary" onclick="adicionarLancamento()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><i class="ti ti-pencil" aria-hidden="true"></i> Lançamento manual</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Data</label><input type="date" id="mData"></div>
+          <div class="form-field"><label>Valor (R$)</label><input type="number" id="mValor" step="0.01" placeholder="0,00"></div>
+          <div class="form-field full"><label>Descrição</label><input type="text" id="mDesc" placeholder="Descrição do item ou serviço"></div>
+          <div class="form-field"><label>Forma de pagamento</label>
+            <select id="mPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+          </div>
+          <div class="form-field"><label>Origem</label><input type="text" id="mOrigem" placeholder="Ex: Caixa R$500"></div>
+          <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="mCupom" placeholder="Ex: NFC-e 000001016"></div>
         </div>
         <div class="actions">
-          <button class="btn" onclick="cancelar()">Cancelar</button>
-          <button class="btn btn-primary" onclick="adicionarLancamento()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+          <button class="btn btn-primary" onclick="adicionarManual()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
         </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title"><i class="ti ti-pencil" aria-hidden="true"></i> Lançamento manual</div>
-      <div class="form-grid">
-        <div class="form-field"><label>Data</label><input type="date" id="mData"></div>
-        <div class="form-field"><label>Valor (R$)</label><input type="number" id="mValor" step="0.01" placeholder="0,00"></div>
-        <div class="form-field full"><label>Descrição</label><input type="text" id="mDesc" placeholder="Descrição do item ou serviço"></div>
-        <div class="form-field"><label>Forma de pagamento</label>
-          <select id="mPag"><option>PIX</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Outro</option></select>
+    <!-- RESUMO -->
+    <div id="tab-resumo" style="display:none">
+      <div class="section">
+        <div class="section-title"><i class="ti ti-cash" aria-hidden="true"></i> Valor em caixa</div>
+        <div class="saldo-input">
+          <label>Valor recebido (R$):</label>
+          <input type="number" id="valorInicial" step="0.01" placeholder="500" oninput="salvarInicial()">
         </div>
-        <div class="form-field"><label>Origem</label><input type="text" id="mOrigem" placeholder="Ex: Caixa R$500"></div>
-        <div class="form-field full"><label>Cupom / Venda</label><input type="text" id="mCupom" placeholder="Ex: NFC-e 000001016"></div>
       </div>
-      <div class="actions">
-        <button class="btn btn-primary" onclick="adicionarManual()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+      <div class="section">
+        <div class="section-title"><i class="ti ti-report" aria-hidden="true"></i> Resumo</div>
+        <div class="resumo-row"><span>Valor recebido em caixa</span><span id="rInicial">R$ 0,00</span></div>
+        <div class="resumo-row"><span>Utilizado do caixa</span><span id="rUtilizado" style="color:var(--text-danger)">R$ 0,00</span></div>
+        <div class="resumo-row"><span>Saldo em caixa</span><span id="rSaldo" style="color:var(--text-success)">R$ 0,00</span></div>
+        <div class="resumo-row"><span>Pagamentos fora do caixa</span><span id="rFora">R$ 0,00</span></div>
+        <div class="resumo-row"><span>Total geral de despesas</span><span id="rTotal">R$ 0,00</span></div>
       </div>
-    </div>
-  </div>
-
-  <!-- RESUMO -->
-  <div id="tab-resumo" style="display:none">
-    <div class="section">
-      <div class="section-title"><i class="ti ti-cash" aria-hidden="true"></i> Valor em caixa</div>
-      <div class="saldo-input">
-        <label>Valor recebido (R$):</label>
-        <input type="number" id="valorInicial" step="0.01" placeholder="500" oninput="salvarInicial()">
+      <div class="section">
+        <div class="section-title"><i class="ti ti-chart-pie" aria-hidden="true"></i> Por forma de pagamento</div>
+        <div id="porPagamento"><div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div></div>
       </div>
-    </div>
-    <div class="section">
-      <div class="section-title"><i class="ti ti-report" aria-hidden="true"></i> Resumo</div>
-      <div class="resumo-row"><span>Valor recebido em caixa</span><span id="rInicial">R$ 0,00</span></div>
-      <div class="resumo-row"><span>Utilizado do caixa</span><span id="rUtilizado" style="color:var(--text-danger)">R$ 0,00</span></div>
-      <div class="resumo-row"><span>Saldo em caixa</span><span id="rSaldo" style="color:var(--text-success)">R$ 0,00</span></div>
-      <div class="resumo-row"><span>Pagamentos fora do caixa</span><span id="rFora">R$ 0,00</span></div>
-      <div class="resumo-row"><span>Total geral de despesas</span><span id="rTotal">R$ 0,00</span></div>
-    </div>
-    <div class="section">
-      <div class="section-title"><i class="ti ti-chart-pie" aria-hidden="true"></i> Por forma de pagamento</div>
-      <div id="porPagamento"><div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div></div>
     </div>
   </div>
 </div>
@@ -231,7 +293,13 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
+    setDoc, getDoc, onSnapshot, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDuuiJ4YrAOTmlr7-zI1vOogdjfIPZwqtw",
@@ -244,23 +312,93 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
   const col = collection(db, "lancamentos");
   const cfgDoc = doc(db, "config", "caixa");
 
   let lancamentos = [];
   let imgBase64 = null;
+  let unsubscribe = null;
 
-  // helpers
+  // ── AUTH ──
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display = '';
+      document.getElementById('userInfo').textContent = user.email;
+      iniciarApp();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('appScreen').style.display = 'none';
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    }
+  });
+
+  window.fazerLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const errEl = document.getElementById('loginError');
+    const btn = document.getElementById('btnLogin');
+    errEl.style.display = 'none';
+    if (!email || !senha) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.style.display = ''; return; }
+    btn.disabled = true; btn.textContent = 'Entrando...';
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+    } catch(e) {
+      const msgs = {
+        'auth/user-not-found': 'Usuário não encontrado.',
+        'auth/wrong-password': 'Senha incorreta.',
+        'auth/invalid-email': 'E-mail inválido.',
+        'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.',
+        'auth/invalid-credential': 'E-mail ou senha incorretos.'
+      };
+      errEl.textContent = msgs[e.code] || 'Erro ao entrar. Verifique seus dados.';
+      errEl.style.display = '';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  };
+
+  // Enter no campo de senha faz login
+  document.getElementById('loginSenha').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.fazerLogin();
+  });
+  document.getElementById('loginEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginSenha').focus();
+  });
+
+  window.fazerLogout = async function() {
+    await signOut(auth);
+  };
+
+  function iniciarApp() {
+    getDoc(cfgDoc).then(d => {
+      if (d.exists()) document.getElementById('valorInicial').value = d.data().valorInicial || '';
+    });
+
+    const q = query(col, orderBy("criadoEm", "asc"));
+    unsubscribe = onSnapshot(q, snap => {
+      lancamentos = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      renderTabela();
+      setSync(true);
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }, () => {
+      setSync(false);
+      document.getElementById('loadingOverlay').style.display = 'none';
+    });
+  }
+
+  // ── HELPERS ──
   function fmt(v) {
-    return 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function fmtData(d) {
     if (!d) return '';
-    if (d.includes('-')) { const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+    if (d.includes('-')) { const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
     return d;
   }
   function badgePag(p) {
-    const cls = {'PIX':'badge-pix','Crédito':'badge-credito','Débito':'badge-debito','Dinheiro':'badge-dinheiro'}[p]||'badge-outro';
+    const cls = { 'PIX': 'badge-pix', 'Crédito': 'badge-credito', 'Débito': 'badge-debito', 'Dinheiro': 'badge-dinheiro' }[p] || 'badge-outro';
     return `<span class="badge ${cls}">${p}</span>`;
   }
   function origemCaixa(o) { return o && o.toLowerCase().includes('caixa'); }
@@ -271,27 +409,27 @@
   }
 
   function calcTotais() {
-    const ini = parseFloat(document.getElementById('valorInicial')?.value||0);
-    let tc=0, tf=0;
-    lancamentos.forEach(l=>{ const v=parseFloat(l.valor||0); origemCaixa(l.origem)?tc+=v:tf+=v; });
-    return { ini, totalCaixa:tc, totalFora:tf, total:tc+tf, saldo:ini-tc };
+    const ini = parseFloat(document.getElementById('valorInicial')?.value || 0);
+    let tc = 0, tf = 0;
+    lancamentos.forEach(l => { const v = parseFloat(l.valor || 0); origemCaixa(l.origem) ? tc += v : tf += v; });
+    return { ini, totalCaixa: tc, totalFora: tf, total: tc + tf, saldo: ini - tc };
   }
 
   function renderTabela() {
     const tbody = document.getElementById('tbody');
     const tabela = document.getElementById('tabela');
     const emptyMsg = document.getElementById('emptyMsg');
-    if (lancamentos.length===0) { tabela.style.display='none'; emptyMsg.style.display=''; }
+    if (lancamentos.length === 0) { tabela.style.display = 'none'; emptyMsg.style.display = ''; }
     else {
-      tabela.style.display=''; emptyMsg.style.display='none';
-      tbody.innerHTML = lancamentos.map((l,i)=>`
+      tabela.style.display = ''; emptyMsg.style.display = 'none';
+      tbody.innerHTML = lancamentos.map(l => `
         <tr>
           <td>${fmtData(l.data)}</td>
           <td>${l.descricao}</td>
           <td>${badgePag(l.pagamento)}</td>
-          <td style="color:var(--text-secondary);font-size:12px">${l.origem||'—'}</td>
+          <td style="color:var(--text-secondary);font-size:12px">${l.origem || '—'}</td>
           <td style="font-weight:500">${fmt(l.valor)}</td>
-          <td style="font-size:12px;color:var(--text-secondary)">${l.cupom||'—'}</td>
+          <td style="font-size:12px;color:var(--text-secondary)">${l.cupom || '—'}</td>
           <td><button class="btn btn-danger btn-sm" onclick="window._remover('${l._id}')"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
         </tr>`).join('');
     }
@@ -316,44 +454,32 @@
     document.getElementById('rFora').textContent = fmt(t.totalFora);
     document.getElementById('rTotal').textContent = fmt(t.total);
     const pag = {};
-    lancamentos.forEach(l=>{ pag[l.pagamento]=(pag[l.pagamento]||0)+parseFloat(l.valor||0); });
+    lancamentos.forEach(l => { pag[l.pagamento] = (pag[l.pagamento] || 0) + parseFloat(l.valor || 0); });
     const el = document.getElementById('porPagamento');
     if (!Object.keys(pag).length) {
-      el.innerHTML='<div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div>';
+      el.innerHTML = '<div class="empty" style="padding:1rem"><i class="ti ti-info-circle"></i> Nenhum dado ainda.</div>';
     } else {
-      el.innerHTML = Object.entries(pag).map(([k,v])=>`<div class="resumo-row"><span>${badgePag(k)}</span><span>${fmt(v)}</span></div>`).join('');
+      el.innerHTML = Object.entries(pag).map(([k, v]) => `<div class="resumo-row"><span>${badgePag(k)}</span><span>${fmt(v)}</span></div>`).join('');
     }
     atualizarCards();
   }
 
-  // Firestore realtime
-  const q = query(col, orderBy("criadoEm","asc"));
-  onSnapshot(q, snap => {
-    lancamentos = snap.docs.map(d=>({_id:d.id,...d.data()}));
-    renderTabela();
-    setSync(true);
-    document.getElementById('loadingOverlay').style.display='none';
-  }, ()=>{ setSync(false); document.getElementById('loadingOverlay').style.display='none'; });
-
-  // carregar config
-  getDoc(cfgDoc).then(d=>{ if(d.exists()) document.getElementById('valorInicial').value=d.data().valorInicial||''; });
-
-  // expor funções globais
+  // ── TABS ──
   window.showTab = function(name) {
-    ['lancamentos','novo','resumo'].forEach(t=>{ document.getElementById('tab-'+t).style.display=t===name?'':'none'; });
-    document.querySelectorAll('.tab').forEach((btn,i)=>{ btn.classList.toggle('active',['lancamentos','novo','resumo'][i]===name); });
-    if (name==='resumo') atualizarResumo();
+    ['lancamentos', 'novo', 'resumo'].forEach(t => { document.getElementById('tab-' + t).style.display = t === name ? '' : 'none'; });
+    document.querySelectorAll('.tab').forEach((btn, i) => { btn.classList.toggle('active', ['lancamentos', 'novo', 'resumo'][i] === name); });
+    if (name === 'resumo') atualizarResumo();
   };
 
   window.salvarInicial = async function() {
-    const v = parseFloat(document.getElementById('valorInicial').value||0);
-    await setDoc(cfgDoc,{valorInicial:v});
+    const v = parseFloat(document.getElementById('valorInicial').value || 0);
+    await setDoc(cfgDoc, { valorInicial: v });
     atualizarCards();
   };
 
   window._remover = async function(id) {
     if (!confirm('Remover este lançamento?')) return;
-    await deleteDoc(doc(db,'lancamentos',id));
+    await deleteDoc(doc(db, 'lancamentos', id));
   };
 
   window.limparTudo = async function() {
@@ -363,28 +489,32 @@
   };
 
   window.cancelar = function() {
-    document.getElementById('previewBox').style.display='none';
-    document.getElementById('fileInput').value='';
-    document.getElementById('statusBox').style.display='none';
-    imgBase64=null;
+    document.getElementById('previewBox').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('statusBox').style.display = 'none';
+    imgBase64 = null;
   };
 
   function setStatus(msg, tipo) {
-    const el=document.getElementById('statusBox');
-    el.textContent=msg; el.className='status '+(tipo||''); el.style.display=msg?'':'none';
+    const el = document.getElementById('statusBox');
+    el.textContent = msg; el.className = 'status ' + (tipo || ''); el.style.display = msg ? '' : 'none';
   }
 
+  // ── UPLOAD DE IMAGEM ──
   window.onFileSelected = function(e) {
-    const file=e.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=function(ev){
-      const dataUrl=ev.target.result;
-      imgBase64=dataUrl.split(',')[1];
-      const mtype=file.type;
-      const preview=document.getElementById('previewBox');
-      const img=document.getElementById('previewImg');
-      img.src=dataUrl; img.style.display=''; preview.style.display='';
-      setStatus('Analisando imagem com IA...','loading');
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const dataUrl = ev.target.result;
+      imgBase64 = dataUrl.split(',')[1];
+      const mtype = file.type;
+      const preview = document.getElementById('previewBox');
+      const img = document.getElementById('previewImg');
+      img.src = dataUrl;
+      img.style.display = '';
+      preview.style.display = '';
+      setStatus('Analisando imagem com IA...', 'loading');
       analisarComIA(imgBase64, mtype);
     };
     reader.readAsDataURL(file);
@@ -392,76 +522,80 @@
 
   async function analisarComIA(b64, mtype) {
     try {
-      const hoje=new Date().toISOString().split('T')[0];
-      const prompt=`Você é um assistente especializado em leitura de cupons fiscais, notas fiscais e recibos brasileiros.
-Analise a imagem e extraia as seguintes informações no formato JSON:
-{"data":"YYYY-MM-DD ou vazio","descricao":"descrição resumida dos itens","pagamento":"PIX ou Crédito ou Débito ou Dinheiro ou Outro","origem":"Caixa R$500 ou Pagamento direto","valor":numero,"cupom":"número do cupom ou NF-e ou vazio"}
-Responda SOMENTE com o JSON, sem markdown nem texto adicional. Data de hoje: ${hoje}`;
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mtype,data:b64}},{type:'text',text:prompt}]}]})
+      // Chama a Vercel Function (api/analyze.js) — a chave fica no servidor
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: b64, mediaType: mtype })
       });
-      const data=await resp.json();
-      const text=data.content?.map(c=>c.text||'').join('');
-      const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
-      if(parsed.data) document.getElementById('fData').value=parsed.data;
-      if(parsed.descricao) document.getElementById('fDesc').value=parsed.descricao;
-      if(parsed.pagamento) document.getElementById('fPag').value=parsed.pagamento;
-      if(parsed.origem) document.getElementById('fOrigem').value=parsed.origem;
-      if(parsed.valor) document.getElementById('fValor').value=parsed.valor;
-      if(parsed.cupom) document.getElementById('fCupom').value=parsed.cupom;
-      setStatus('✓ Dados extraídos — revise e confirme.','success');
-    } catch(err) {
-      setStatus('Não foi possível extrair automaticamente. Preencha manualmente.','error');
+
+      if (!resp.ok) {
+        throw new Error(`Erro ${resp.status}`);
+      }
+
+      const parsed = await resp.json();
+
+      if (parsed.data) document.getElementById('fData').value = parsed.data;
+      if (parsed.descricao) document.getElementById('fDesc').value = parsed.descricao;
+      if (parsed.pagamento) document.getElementById('fPag').value = parsed.pagamento;
+      if (parsed.origem) document.getElementById('fOrigem').value = parsed.origem;
+      if (parsed.valor) document.getElementById('fValor').value = parsed.valor;
+      if (parsed.cupom) document.getElementById('fCupom').value = parsed.cupom;
+      setStatus('✓ Dados extraídos — revise e confirme.', 'success');
+    } catch (err) {
+      setStatus('Não foi possível extrair automaticamente. Preencha manualmente.', 'error');
+      console.error(err);
     }
   }
 
   window.adicionarLancamento = async function() {
-    const desc=document.getElementById('fDesc').value.trim();
-    const valor=document.getElementById('fValor').value;
-    if(!desc||!valor){alert('Preencha ao menos a descrição e o valor.');return;}
-    setStatus('Salvando...','loading');
+    const desc = document.getElementById('fDesc').value.trim();
+    const valor = document.getElementById('fValor').value;
+    if (!desc || !valor) { alert('Preencha ao menos a descrição e o valor.'); return; }
+    setStatus('Salvando...', 'loading');
     try {
-      await addDoc(col,{
-        data:document.getElementById('fData').value,
-        descricao:desc,
-        pagamento:document.getElementById('fPag').value,
-        origem:document.getElementById('fOrigem').value.trim(),
-        valor:parseFloat(valor),
-        cupom:document.getElementById('fCupom').value.trim(),
-        criadoEm:Date.now()
+      await addDoc(col, {
+        data: document.getElementById('fData').value,
+        descricao: desc,
+        pagamento: document.getElementById('fPag').value,
+        origem: document.getElementById('fOrigem').value.trim(),
+        valor: parseFloat(valor),
+        cupom: document.getElementById('fCupom').value.trim(),
+        criadoEm: Date.now()
       });
       window.cancelar(); window.showTab('lancamentos');
-    } catch(e){ setStatus('Erro ao salvar. Verifique a conexão.','error'); }
+    } catch (e) { setStatus('Erro ao salvar. Verifique a conexão.', 'error'); }
   };
 
   window.adicionarManual = async function() {
-    const desc=document.getElementById('mDesc').value.trim();
-    const valor=document.getElementById('mValor').value;
-    if(!desc||!valor){alert('Preencha ao menos a descrição e o valor.');return;}
+    const desc = document.getElementById('mDesc').value.trim();
+    const valor = document.getElementById('mValor').value;
+    if (!desc || !valor) { alert('Preencha ao menos a descrição e o valor.'); return; }
     try {
-      await addDoc(col,{
-        data:document.getElementById('mData').value,
-        descricao:desc,
-        pagamento:document.getElementById('mPag').value,
-        origem:document.getElementById('mOrigem').value.trim(),
-        valor:parseFloat(valor),
-        cupom:document.getElementById('mCupom').value.trim(),
-        criadoEm:Date.now()
+      await addDoc(col, {
+        data: document.getElementById('mData').value,
+        descricao: desc,
+        pagamento: document.getElementById('mPag').value,
+        origem: document.getElementById('mOrigem').value.trim(),
+        valor: parseFloat(valor),
+        cupom: document.getElementById('mCupom').value.trim(),
+        criadoEm: Date.now()
       });
-      ['mData','mDesc','mValor','mOrigem','mCupom'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('mPag').value='PIX';
+      ['mData', 'mDesc', 'mValor', 'mOrigem', 'mCupom'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('mPag').value = 'PIX';
       window.showTab('lancamentos');
-    } catch(e){ alert('Erro ao salvar. Verifique a conexão.'); }
+    } catch (e) { alert('Erro ao salvar. Verifique a conexão.'); }
   };
 
   window.exportarCSV = function() {
-    const cols=['Data','Descrição','Pagamento','Origem','Valor','Cupom / Venda'];
-    const rows=lancamentos.map(l=>[fmtData(l.data),l.descricao,l.pagamento,l.origem,String(l.valor).replace('.',','),l.cupom].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(';'));
-    const csv=[cols.join(';'),...rows].join('\n');
-    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='detalhamento_caixa.csv'; a.click();
+    const cols = ['Data', 'Descrição', 'Pagamento', 'Origem', 'Valor', 'Cupom / Venda'];
+    const rows = lancamentos.map(l => [
+      fmtData(l.data), l.descricao, l.pagamento, l.origem,
+      String(l.valor).replace('.', ','), l.cupom
+    ].map(v => `"${(v || '').replace(/"/g, '""')}"`).join(';'));
+    const csv = [cols.join(';'), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'detalhamento_caixa.csv'; a.click();
   };
 </script>
 </body>
