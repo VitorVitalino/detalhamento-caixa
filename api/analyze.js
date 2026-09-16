@@ -1,14 +1,12 @@
 // Vercel Serverless Function — api/analyze.js
-// Recebe a imagem do frontend, chama a API Anthropic no servidor
-// A chave ANTHROPIC_API_KEY fica nas variáveis de ambiente do Vercel (nunca no código)
+// Usa a API do Google Gemini (gratuita) para analisar imagens de cupons
+// A chave GEMINI_API_KEY fica nas variáveis de ambiente do Vercel (nunca no código)
 
 export default async function handler(req, res) {
-  // Permitir apenas POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  // CORS — permite o site chamar esta função
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -18,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Imagem não fornecida' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Chave da API não configurada no servidor' });
   }
@@ -30,33 +28,29 @@ Analise a imagem e extraia as seguintes informações no formato JSON:
 Responda SOMENTE com o JSON, sem markdown nem texto adicional. Data de hoje: ${hoje}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
-            { type: 'text', text: prompt }
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mediaType, data: imageBase64 } },
+            { text: prompt }
           ]
-        }]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(502).json({ error: 'Erro na API de IA', detail: data });
+      return res.status(502).json({ error: 'Erro na API do Gemini', detail: data });
     }
 
-    const text = data.content?.map(c => c.text || '').join('');
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
 
     return res.status(200).json(parsed);
