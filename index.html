@@ -395,8 +395,16 @@
   };
 
   function iniciarApp() {
+    // Mostra mensagem de carregando com status visível
+    const overlay = document.getElementById('loadingOverlay');
+    const overlayMsg = overlay.querySelector('p');
+    overlayMsg.textContent = 'Carregando dados...';
+    overlay.style.display = 'flex';
+
     getDoc(cfgDoc).then(d => {
       if (d.exists()) document.getElementById('valorInicial').value = d.data().valorInicial || '';
+    }).catch(err => {
+      console.error('Erro config:', err);
     });
 
     const q = query(col, orderBy("criadoEm", "asc"));
@@ -404,10 +412,12 @@
       lancamentos = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
       renderTabela();
       setSync(true);
-      document.getElementById('loadingOverlay').style.display = 'none';
-    }, () => {
+      overlay.style.display = 'none';
+    }, (err) => {
+      console.error('Erro Firestore:', err);
       setSync(false);
-      document.getElementById('loadingOverlay').style.display = 'none';
+      overlayMsg.textContent = 'Erro ao carregar: ' + (err.code || err.message) + ' — verifique as regras do Firestore e o domínio autorizado no Firebase.';
+      overlay.style.background = 'var(--surface-0)';
     });
   }
 
