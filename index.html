@@ -407,8 +407,23 @@
       console.error('Erro config:', err);
     });
 
+    // Timeout de segurança — se Firestore não responder em 10s, mostra erro
+    const timeoutId = setTimeout(() => {
+      overlay.style.display = 'flex';
+      overlay.style.background = 'var(--surface-0)';
+      overlay.style.padding = '2rem';
+      overlay.style.textAlign = 'center';
+      overlay.innerHTML = `
+        <i class="ti ti-wifi-off" style="font-size:40px;color:var(--text-warning)"></i>
+        <p style="font-size:15px;font-weight:500;color:var(--text-primary)">Tempo esgotado</p>
+        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">O banco de dados não respondeu. Verifique as regras do Firestore e o domínio autorizado no Firebase.</p>
+        <button onclick="window.location.reload()" style="margin-top:8px;padding:8px 20px;background:var(--fill-accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Tentar novamente</button>
+      `;
+    }, 10000);
+
     const q = query(col, orderBy("criadoEm", "asc"));
     unsubscribe = onSnapshot(q, snap => {
+      clearTimeout(timeoutId);
       lancamentos = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
       renderTabela();
       setSync(true);
@@ -416,8 +431,19 @@
     }, (err) => {
       console.error('Erro Firestore:', err);
       setSync(false);
-      overlayMsg.textContent = 'Erro ao carregar: ' + (err.code || err.message) + ' — verifique as regras do Firestore e o domínio autorizado no Firebase.';
+      overlay.style.display = 'flex';
       overlay.style.background = 'var(--surface-0)';
+      overlay.style.flexDirection = 'column';
+      overlay.style.gap = '12px';
+      overlay.style.padding = '2rem';
+      overlay.style.textAlign = 'center';
+      overlay.innerHTML = `
+        <i class="ti ti-alert-circle" style="font-size:40px;color:var(--text-danger)"></i>
+        <p style="font-size:15px;font-weight:500;color:var(--text-primary)">Não foi possível carregar os dados</p>
+        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">Código do erro: <strong>${err.code || err.message}</strong></p>
+        <p style="font-size:12px;color:var(--text-muted);max-width:320px">Verifique as regras do Firestore e o domínio autorizado no Firebase Authentication.</p>
+        <button onclick="window.location.reload()" style="margin-top:8px;padding:8px 20px;background:var(--fill-accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Tentar novamente</button>
+      `;
     });
   }
 
