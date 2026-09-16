@@ -69,6 +69,12 @@
 
   /* ── APP ── */
   #appScreen { display: none; }
+  #authLoading {
+    position: fixed; inset: 0; background: var(--surface-0);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; z-index: 300;
+  }
+  #authLoading p { font-size: 14px; color: var(--text-secondary); }
   .topbar { background: var(--surface-2); border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; height: 56px; gap: 12px; position: sticky; top: 0; z-index: 10; }
   .topbar h1 { font-size: 16px; font-weight: 500; }
   .topbar .sync { font-size: 12px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 6px; }
@@ -149,6 +155,12 @@
 </style>
 </head>
 <body>
+
+<!-- LOADING AUTH -->
+<div id="authLoading">
+  <div class="spinner"></div>
+  <p>Verificando acesso...</p>
+</div>
 
 <!-- TELA DE LOGIN -->
 <div id="loginScreen">
@@ -328,7 +340,11 @@
   let unsubscribe = null;
 
   // ── AUTH ──
+  // Esconde tudo até Firebase confirmar o estado de auth
+  document.getElementById('loginScreen').style.display = 'none';
+
   onAuthStateChanged(auth, user => {
+    document.getElementById('authLoading').style.display = 'none';
     if (user) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appScreen').style.display = '';
