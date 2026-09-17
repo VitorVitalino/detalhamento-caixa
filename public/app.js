@@ -19,14 +19,14 @@ window.addEventListener('load', function() {
   let unsubscribe = null;
 
   // ── TELAS ──
+  const telas = ['authLoading','loginScreen','appScreen'];
   function mostrar(id) {
-    ['authLoading','loginScreen','appScreen'].forEach(i => {
-      document.getElementById(i).classList.remove('visivel');
+    telas.forEach(i => {
+      const el = document.getElementById(i);
+      el.style.display = 'none';
     });
-    document.getElementById(id).classList.add('visivel');
+    document.getElementById(id).style.display = id === 'appScreen' ? 'block' : 'flex';
   }
-
-  mostrar('authLoading');
 
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -49,6 +49,7 @@ window.addEventListener('load', function() {
     btn.disabled = true; btn.textContent = 'Entrando...';
     try {
       await auth.signInWithEmailAndPassword(email, senha);
+      // Login OK — o onAuthStateChanged vai trocar a tela
     } catch(e) {
       const msgs = {
         'auth/user-not-found': 'Usuário não encontrado.',
@@ -59,8 +60,8 @@ window.addEventListener('load', function() {
       };
       errEl.textContent = msgs[e.code] || 'Erro ao entrar: ' + e.code;
       errEl.style.display = '';
-    } finally {
-      btn.disabled = false; btn.textContent = 'Entrar';
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
     }
   };
 
