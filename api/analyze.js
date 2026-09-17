@@ -1,5 +1,5 @@
 // Vercel Serverless Function — api/analyze.js
-// Usa a API do Google Gemini para analisar imagens de cupons
+// Usa a API da OpenAI (GPT-4o) para analisar imagens de cupons
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Imagem não fornecida' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Chave da API não configurada no servidor' });
   }
@@ -27,42 +27,32 @@ Analise a imagem e extraia as seguintes informações no formato JSON:
 Responda SOMENTE com o JSON, sem markdown nem texto adicional. Data de hoje: ${hoje}`;
 
   try {
-    // Tenta com o novo formato de chave (AQ.) usando o endpoint v1beta com Bearer token
-    const isNewFormat = apiKey.startsWith('AQ.');
-    
-    let url, headers, body;
-
-    if (isNewFormat) {
-      // Novo formato — usa Bearer token no header
-      url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-      headers = {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
-      };
-    } else {
-      // Formato antigo — usa API key na URL
-      url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      headers = { 'Content-Type': 'application/json' };
-    }
-
-    body = JSON.stringify({
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: mediaType, data: imageBase64 } },
-          { text: prompt }
-        ]
-      }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
     });
 
-    const response = await fetch(url, { method: 'POST', headers, body });
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(502).json({ error: 'Erro na API do Gemini', detail: data });
+      return res.status(502).json({ error: 'Erro na API da OpenAI', detail: data });
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = data.choices?.[0]?.message?.content || '';
     const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
 
     return res.status(200).json(parsed);
