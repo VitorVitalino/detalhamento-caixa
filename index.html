@@ -313,16 +313,11 @@
 </div>
 
 <!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
-    setDoc, getDoc, onSnapshot, query, orderBy
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import {
-    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
+<!-- Firebase Compat (não usa módulos ES, funciona em qualquer browser) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyDuuiJ4YrAOTmlr7-zI1vOogdjfIPZwqtw",
     authDomain: "tetoeobra-casa-borogodo.firebaseapp.com",
@@ -332,17 +327,17 @@
     appId: "1:916640072730:web:7e2a9c38281216c1513da3"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const col = collection(db, "lancamentos");
-  const cfgDoc = doc(db, "config", "caixa");
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  const col = db.collection("lancamentos");
+  const cfgDoc = db.collection("config").doc("caixa");
 
   let lancamentos = [];
   let imgBase64 = null;
   let unsubscribe = null;
 
-  // ── AUTH ──
+  // ── TELAS ──
   function mostrar(id) {
     ['authLoading','loginScreen','appScreen'].forEach(i => {
       document.getElementById(i).classList.remove('visivel');
@@ -350,10 +345,9 @@
     document.getElementById(id).classList.add('visivel');
   }
 
-  // Começa mostrando o authLoading
   mostrar('authLoading');
 
-  onAuthStateChanged(auth, user => {
+  auth.onAuthStateChanged(user => {
     if (user) {
       mostrar('appScreen');
       document.getElementById('userInfo').textContent = user.email;
@@ -373,7 +367,7 @@
     if (!email || !senha) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.style.display = ''; return; }
     btn.disabled = true; btn.textContent = 'Entrando...';
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
+      await auth.signInWithEmailAndPassword(email, senha);
     } catch(e) {
       const msgs = {
         'auth/user-not-found': 'Usuário não encontrado.',
@@ -382,73 +376,57 @@
         'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde.',
         'auth/invalid-credential': 'E-mail ou senha incorretos.'
       };
-      errEl.textContent = msgs[e.code] || 'Erro ao entrar. Verifique seus dados.';
+      errEl.textContent = msgs[e.code] || 'Erro ao entrar: ' + e.code;
       errEl.style.display = '';
     } finally {
       btn.disabled = false; btn.textContent = 'Entrar';
     }
   };
 
-  // Enter no campo de senha faz login
-  document.getElementById('loginSenha').addEventListener('keydown', e => {
-    if (e.key === 'Enter') window.fazerLogin();
-  });
-  document.getElementById('loginEmail').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('loginSenha').focus();
-  });
+  document.getElementById('loginSenha').addEventListener('keydown', e => { if (e.key === 'Enter') window.fazerLogin(); });
+  document.getElementById('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSenha').focus(); });
 
-  window.fazerLogout = async function() {
-    await signOut(auth);
-  };
+  window.fazerLogout = async function() { await auth.signOut(); };
 
   function iniciarApp() {
-    // Mostra mensagem de carregando com status visível
     const overlay = document.getElementById('loadingOverlay');
     const overlayMsg = overlay.querySelector('p');
     overlayMsg.textContent = 'Carregando dados...';
     overlay.style.display = 'flex';
 
-    getDoc(cfgDoc).then(d => {
-      if (d.exists()) document.getElementById('valorInicial').value = d.data().valorInicial || '';
-    }).catch(err => {
-      console.error('Erro config:', err);
-    });
+    cfgDoc.get().then(d => {
+      if (d.exists) document.getElementById('valorInicial').value = d.data().valorInicial || '';
+    }).catch(err => console.error('Erro config:', err));
 
-    // Timeout de segurança — se Firestore não responder em 10s, mostra erro
     const timeoutId = setTimeout(() => {
       overlay.style.display = 'flex';
-      overlay.style.background = 'var(--surface-0)';
       overlay.style.padding = '2rem';
       overlay.style.textAlign = 'center';
       overlay.innerHTML = `
         <i class="ti ti-wifi-off" style="font-size:40px;color:var(--text-warning)"></i>
         <p style="font-size:15px;font-weight:500;color:var(--text-primary)">Tempo esgotado</p>
-        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">O banco de dados não respondeu. Verifique as regras do Firestore e o domínio autorizado no Firebase.</p>
+        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">O banco de dados não respondeu. Verifique as regras do Firestore.</p>
         <button onclick="window.location.reload()" style="margin-top:8px;padding:8px 20px;background:var(--fill-accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Tentar novamente</button>
       `;
     }, 10000);
 
-    const q = query(col, orderBy("criadoEm", "asc"));
-    unsubscribe = onSnapshot(q, snap => {
+    unsubscribe = col.orderBy("criadoEm", "asc").onSnapshot(snap => {
       clearTimeout(timeoutId);
       lancamentos = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
       renderTabela();
       setSync(true);
       overlay.style.display = 'none';
-    }, (err) => {
+    }, err => {
+      clearTimeout(timeoutId);
       console.error('Erro Firestore:', err);
       setSync(false);
       overlay.style.display = 'flex';
-      overlay.style.background = 'var(--surface-0)';
-      overlay.style.flexDirection = 'column';
-      overlay.style.gap = '12px';
       overlay.style.padding = '2rem';
       overlay.style.textAlign = 'center';
       overlay.innerHTML = `
         <i class="ti ti-alert-circle" style="font-size:40px;color:var(--text-danger)"></i>
-        <p style="font-size:15px;font-weight:500;color:var(--text-primary)">Não foi possível carregar os dados</p>
-        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">Código do erro: <strong>${err.code || err.message}</strong></p>
-        <p style="font-size:12px;color:var(--text-muted);max-width:320px">Verifique as regras do Firestore e o domínio autorizado no Firebase Authentication.</p>
+        <p style="font-size:15px;font-weight:500;color:var(--text-primary)">Erro ao carregar dados</p>
+        <p style="font-size:13px;color:var(--text-secondary);max-width:320px">Código: <strong>${err.code || err.message}</strong></p>
         <button onclick="window.location.reload()" style="margin-top:8px;padding:8px 20px;background:var(--fill-accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Tentar novamente</button>
       `;
     });
@@ -470,8 +448,8 @@
   function origemCaixa(o) { return o && o.toLowerCase().includes('caixa'); }
   function setSync(ok) {
     document.getElementById('syncStatus').innerHTML = ok
-      ? '<i class="ti ti-cloud-check" aria-hidden="true"></i> Sincronizado'
-      : '<i class="ti ti-cloud-off" aria-hidden="true"></i> Sem conexão';
+      ? '<i class="ti ti-cloud-check"></i> Sincronizado'
+      : '<i class="ti ti-cloud-off"></i> Sem conexão';
   }
 
   function calcTotais() {
@@ -496,7 +474,7 @@
           <td style="color:var(--text-secondary);font-size:12px">${l.origem || '—'}</td>
           <td style="font-weight:500">${fmt(l.valor)}</td>
           <td style="font-size:12px;color:var(--text-secondary)">${l.cupom || '—'}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="window._remover('${l._id}')"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+          <td><button class="btn btn-danger btn-sm" onclick="window._remover('${l._id}')"><i class="ti ti-trash"></i></button></td>
         </tr>`).join('');
     }
     atualizarCards();
@@ -530,7 +508,6 @@
     atualizarCards();
   }
 
-  // ── TABS ──
   window.showTab = function(name) {
     ['lancamentos', 'novo', 'resumo'].forEach(t => { document.getElementById('tab-' + t).style.display = t === name ? '' : 'none'; });
     document.querySelectorAll('.tab').forEach((btn, i) => { btn.classList.toggle('active', ['lancamentos', 'novo', 'resumo'][i] === name); });
@@ -539,19 +516,19 @@
 
   window.salvarInicial = async function() {
     const v = parseFloat(document.getElementById('valorInicial').value || 0);
-    await setDoc(cfgDoc, { valorInicial: v });
+    await cfgDoc.set({ valorInicial: v });
     atualizarCards();
   };
 
   window._remover = async function(id) {
     if (!confirm('Remover este lançamento?')) return;
-    await deleteDoc(doc(db, 'lancamentos', id));
+    await col.doc(id).delete();
   };
 
   window.limparTudo = async function() {
-    if (!confirm('Tem certeza? Isso vai apagar TODOS os lançamentos do banco de dados.')) return;
-    const snap = await getDocs(col);
-    for (const d of snap.docs) await deleteDoc(d.ref);
+    if (!confirm('Tem certeza? Isso vai apagar TODOS os lançamentos.')) return;
+    const snap = await col.get();
+    for (const d of snap.docs) await d.ref.delete();
   };
 
   window.cancelar = function() {
@@ -566,7 +543,6 @@
     el.textContent = msg; el.className = 'status ' + (tipo || ''); el.style.display = msg ? '' : 'none';
   }
 
-  // ── UPLOAD DE IMAGEM ──
   window.onFileSelected = function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -575,11 +551,9 @@
       const dataUrl = ev.target.result;
       imgBase64 = dataUrl.split(',')[1];
       const mtype = file.type;
-      const preview = document.getElementById('previewBox');
-      const img = document.getElementById('previewImg');
-      img.src = dataUrl;
-      img.style.display = '';
-      preview.style.display = '';
+      document.getElementById('previewImg').src = dataUrl;
+      document.getElementById('previewImg').style.display = '';
+      document.getElementById('previewBox').style.display = '';
       setStatus('Analisando imagem com IA...', 'loading');
       analisarComIA(imgBase64, mtype);
     };
@@ -588,19 +562,13 @@
 
   async function analisarComIA(b64, mtype) {
     try {
-      // Chama a Vercel Function (api/analyze.js) — a chave fica no servidor
       const resp = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: b64, mediaType: mtype })
       });
-
-      if (!resp.ok) {
-        throw new Error(`Erro ${resp.status}`);
-      }
-
+      if (!resp.ok) throw new Error('Erro ' + resp.status);
       const parsed = await resp.json();
-
       if (parsed.data) document.getElementById('fData').value = parsed.data;
       if (parsed.descricao) document.getElementById('fDesc').value = parsed.descricao;
       if (parsed.pagamento) document.getElementById('fPag').value = parsed.pagamento;
@@ -620,7 +588,7 @@
     if (!desc || !valor) { alert('Preencha ao menos a descrição e o valor.'); return; }
     setStatus('Salvando...', 'loading');
     try {
-      await addDoc(col, {
+      await col.add({
         data: document.getElementById('fData').value,
         descricao: desc,
         pagamento: document.getElementById('fPag').value,
@@ -638,7 +606,7 @@
     const valor = document.getElementById('mValor').value;
     if (!desc || !valor) { alert('Preencha ao menos a descrição e o valor.'); return; }
     try {
-      await addDoc(col, {
+      await col.add({
         data: document.getElementById('mData').value,
         descricao: desc,
         pagamento: document.getElementById('mPag').value,
