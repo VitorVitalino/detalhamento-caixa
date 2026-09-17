@@ -318,6 +318,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+window.addEventListener('load', function() {
   const firebaseConfig = {
     apiKey: "AIzaSyDuuiJ4YrAOTmlr7-zI1vOogdjfIPZwqtw",
     authDomain: "tetoeobra-casa-borogodo.firebaseapp.com",
@@ -631,6 +632,7 @@
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'detalhamento_caixa.csv'; a.click();
   };
+}); // fim window.onload
 </script>
 </body>
 </html>
