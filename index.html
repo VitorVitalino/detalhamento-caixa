@@ -69,6 +69,9 @@
 
   /* ── APP ── */
   #appScreen { display: none; }
+  #appScreen.visivel { display: block; }
+  #loginScreen.visivel { display: flex; }
+  #authLoading.visivel { display: flex; }
   #authLoading {
     position: fixed; inset: 0; background: var(--surface-0);
     display: flex; align-items: center; justify-content: center;
@@ -157,7 +160,7 @@
 <body>
 
 <!-- LOADING AUTH -->
-<div id="authLoading">
+<div id="authLoading" class="visivel">
   <div class="spinner"></div>
   <p>Verificando acesso...</p>
 </div>
@@ -340,19 +343,23 @@
   let unsubscribe = null;
 
   // ── AUTH ──
-  // Esconde tudo até Firebase confirmar o estado de auth
-  document.getElementById('loginScreen').style.display = 'none';
+  function mostrar(id) {
+    ['authLoading','loginScreen','appScreen'].forEach(i => {
+      document.getElementById(i).classList.remove('visivel');
+    });
+    document.getElementById(id).classList.add('visivel');
+  }
+
+  // Começa mostrando o authLoading
+  mostrar('authLoading');
 
   onAuthStateChanged(auth, user => {
-    document.getElementById('authLoading').style.display = 'none';
     if (user) {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('appScreen').style.display = '';
+      mostrar('appScreen');
       document.getElementById('userInfo').textContent = user.email;
       iniciarApp();
     } else {
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('appScreen').style.display = 'none';
+      mostrar('loginScreen');
       if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     }
   });
