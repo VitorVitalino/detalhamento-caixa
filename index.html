@@ -69,9 +69,14 @@
 
   /* ── APP ── */
   #appScreen { display: none; }
+  #loginScreen { display: none; }
+  #authLoading { display: flex; }
   #appScreen.visivel { display: block; }
   #loginScreen.visivel { display: flex; }
   #authLoading.visivel { display: flex; }
+  #authLoading.oculto { display: none; }
+  #loginScreen.oculto { display: none; }
+  #appScreen.oculto { display: none; }
   #authLoading {
     position: fixed; inset: 0; background: var(--surface-0);
     display: flex; align-items: center; justify-content: center;
@@ -160,7 +165,7 @@
 <body>
 
 <!-- LOADING AUTH -->
-<div id="authLoading" class="visivel">
+<div id="authLoading">
   <div class="spinner"></div>
   <p>Verificando acesso...</p>
 </div>
