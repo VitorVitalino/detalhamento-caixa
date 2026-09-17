@@ -1,6 +1,5 @@
 // Vercel Serverless Function — api/analyze.js
-// Usa a API do Google Gemini (gratuita) para analisar imagens de cupons
-// A chave GEMINI_API_KEY fica nas variáveis de ambiente do Vercel (nunca no código)
+// Usa a API do Google Gemini para analisar imagens de cupons
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,22 +27,35 @@ Analise a imagem e extraia as seguintes informações no formato JSON:
 Responda SOMENTE com o JSON, sem markdown nem texto adicional. Data de hoje: ${hoje}`;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Tenta com o novo formato de chave (AQ.) usando o endpoint v1beta com Bearer token
+    const isNewFormat = apiKey.startsWith('AQ.');
+    
+    let url, headers, body;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mediaType, data: imageBase64 } },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
-      })
+    if (isNewFormat) {
+      // Novo formato — usa Bearer token no header
+      url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+    } else {
+      // Formato antigo — usa API key na URL
+      url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      headers = { 'Content-Type': 'application/json' };
+    }
+
+    body = JSON.stringify({
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mediaType, data: imageBase64 } },
+          { text: prompt }
+        ]
+      }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
     });
 
+    const response = await fetch(url, { method: 'POST', headers, body });
     const data = await response.json();
 
     if (!response.ok) {
